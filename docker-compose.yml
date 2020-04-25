@@ -1,0 +1,78 @@
+version: '3'
+services:
+    postgres:
+        image: 'postgres:latest'
+        environment:
+            # "postgres_password" is usually the default pw in postgres, we're setting it here explicitly
+            - POSTGRES_PASSWORD=postgres_password
+    redis:
+        image: 'redis:latest'
+    nginx:
+        # setting this so it will always be up
+        restart: always
+        # the below is a workaround for a small number of students in the course. Might not be always needed
+        depends_on:
+            - api
+            - client
+        build: 
+            dockerfile: Dockerfile.dev
+            context: ./nginx
+        # this is the only container exposed to the outside, so this needs an external port mapping
+        # the 3050 port selection is arbitrary, it can be anything we want to connect with
+        ports:
+            - '3050:80'
+    # this is the "server" code, but we're renaming this "api" to avoid confusion in the nginx config
+    api:
+        # adding this as a workaround for when sometimes the worker doesn't seem to do anything
+        depends_on:
+            - postgres
+        build:
+            # NOTE: dockerfile just specifies file name. Context tag is used to specify where it's located
+            dockerfile: Dockerfile.dev
+            context: ./server
+        volumes:
+            # bookmark this inside the container
+            - /app/node_modules
+            # redirect /app in container to local ./server folder
+            - ./server:/app
+        # setting environment variables, in array format
+        environment:
+            # "redis" is the service name specified above on line 8
+            - REDIS_HOST=redis
+            # this is the default redis port
+            - REDIS_PORT=6379
+            # default user
+            - PGUSER=postgres
+            # "postgres" is the service name specified on line 3 above
+            - PGHOST=postgres
+            # default DB
+            - PGDATABASE=postgres
+            # default pw (which we explicitly specified above on line 7)
+            - PGPASSWORD=postgres_password
+            # default port
+            - PGPORT=5432
+    # client service
+    client:
+        # this line is just a bug workaround for React
+        stdin_open: true
+        build:
+            dockerfile: Dockerfile.dev
+            context: ./client
+        volumes:
+            - /app/node_modules
+            - ./client:/app
+    # worker service
+    worker:
+        # adding this as a workaround for when sometimes the worker doesn't seem to do anything
+        environment:
+            - REDIS_HOST=redis
+            - REDIS_PORT=6379
+        build:
+            dockerfile: Dockerfile.dev
+            context: ./worker
+        volumes:
+            - /app/node_modules
+            - ./worker:/app
+
+
+            
