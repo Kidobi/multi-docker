@@ -35,3 +35,18 @@ after_success:
     - docker push kidobi/multi-docker-server
     - docker push kidobi/multi-docker-worker
  
+# last step is to deploy out project over to elastic beanstalk
+deploy:
+    # this line below is just a workaround for some issues
+    edge: true
+    provider: elasticbeanstalk
+    region: us-west-1
+    app: multi-docker
+    env: MultiDocker-env
+    bucket_name: elasticbeanstalk-us-west-1-403263076102
+    bucket_path: multi-docker
+    on:
+        branch: master    
+    access_key_id: $AWS_ACCESS_KEY
+    secret_access_key: $AWS_SECRET_KEY
+    
